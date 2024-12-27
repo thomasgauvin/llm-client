@@ -399,6 +399,7 @@ caddy reverse-proxy --from https://<YOUR_LOCAL_IP>:8443 --to http://localhost:11
 																							}
 																						}}
 																						className={`w-full p-2 border
+                                              appearance-none
                                               font-mono text-xs
                                               ${
 																								step.input.disabled
@@ -423,6 +424,7 @@ caddy reverse-proxy --from https://<YOUR_LOCAL_IP>:8443 --to http://localhost:11
 																							}
 																						}}
 																						className={`w-full p-2 border
+                                              appearance-none
                                               font-mono text-xs
                                               ${
 																								step.input.disabled
