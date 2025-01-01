@@ -224,6 +224,15 @@ caddy reverse-proxy --from https://<YOUR_LOCAL_IP>:8443 --to http://localhost:11
 							setOllamaUrl(value);
 						},
 					},
+
+					postInputText: (
+						<>
+							Accept the self-signed certificate in your browser if you haven't already.
+							<a href={ollamaUrl} className="text-blue-500 hover:underline ml-2" target="_blank" rel="noopener noreferrer">
+								Accept the certificate
+							</a>
+						</>
+					),
 				},
 				{
 					label: 'Select Ollama Model',

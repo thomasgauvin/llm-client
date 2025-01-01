@@ -1,74 +1,61 @@
-import React from "react";
-import {
-  PanelLeftOpen,
-  PanelLeftClose,
-  Settings,
-  Server,
-  CloudLightning,
-  Code,
-} from "lucide-react";
-import ChatThemeDropdown from "./ChatThemeDropdown.tsx";
-import { AiConfiguration } from "./ChatApp.tsx";
+import React from 'react';
+import { PanelLeftOpen, PanelLeftClose, Settings, Server, CloudLightning, Code } from 'lucide-react';
+import ChatThemeDropdown from './ChatThemeDropdown.tsx';
+import { AiConfiguration } from './ChatApp.tsx';
 
 interface ChatNavbarProps {
-  sidebarVisible: boolean;
-  setSidebarVisible: React.Dispatch<React.SetStateAction<boolean>>;
-  aiConfiguration: AiConfiguration | undefined;
-  setShowConfigModal: React.Dispatch<React.SetStateAction<boolean>>;
+	sidebarVisible: boolean;
+	setSidebarVisible: React.Dispatch<React.SetStateAction<boolean>>;
+	aiConfiguration: AiConfiguration | undefined;
+	setShowConfigModal: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const ChatNavbar: React.FC<ChatNavbarProps> = ({
-  sidebarVisible,
-  setSidebarVisible,
-  aiConfiguration,
-  setShowConfigModal,
-}) => {
-  return (
-    <div className="border-b border-zinc-200 dark:border-zinc-600">
-      <div className="m-2 flex items-center justify-between">
-        <div className="flex items-center">
-          <button
-            onClick={() => setSidebarVisible(!sidebarVisible)}
-            className="mr-2 transition-colors text-zinc-600 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-500"
-          >
-            {sidebarVisible ? (
-              <PanelLeftClose size={20} />
-            ) : (
-              <PanelLeftOpen size={20} />
-            )}
-          </button>
-          <h1 className="text-base font-semibold text-zinc-800 dark:text-zinc-200">
-            Local AI Chat
-          </h1>
-        </div>
-        <div className="flex items-center gap-4">
-          <ChatThemeDropdown />
-          <button
-            onClick={() => setShowConfigModal(true)}
-            className="inline-flex text-xs w-32 justify-between border-zinc-300 dark:border-zinc-600 border items-center gap-x-1.5 bg-zinc-100 dark:bg-zinc-900 px-3 py-2 text-sm font-normal text-zinc-900 dark:text-zinc-100 hover:bg-zinc-200 dark:hover:bg-zinc-800"
-          >
-            {aiConfiguration ? (
-              <>
-                {aiConfiguration.type === "ollama" ? (
-                  <Server size={16} />
-                ) : aiConfiguration.type === "cloudflare" ? (
-                  <CloudLightning size={16} />
-                ) : (
-                  <Code size={16} />
-                )}
-                <span className="capitalize">{aiConfiguration.type}</span>
-              </>
-            ) : (
-              <>
-                <Settings size={16} />
-                <span>Configure AI</span>
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+const ChatNavbar: React.FC<ChatNavbarProps> = ({ sidebarVisible, setSidebarVisible, aiConfiguration, setShowConfigModal }) => {
+	return (
+		<div className="border-b border-zinc-200 dark:border-zinc-600">
+			<div className="m-2 flex items-center justify-between">
+				<div className="flex items-center">
+					<button
+						onClick={() => setSidebarVisible(!sidebarVisible)}
+						className="mr-2 transition-colors text-zinc-600 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-500"
+					>
+						{sidebarVisible ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
+					</button>
+					<h1 className="text-base font-semibold text-zinc-800 dark:text-zinc-200">LLM Client</h1>
+				</div>
+				<div className="flex items-center gap-4">
+					<ChatThemeDropdown />
+					<button
+						onClick={() => setShowConfigModal(true)}
+						className="inline-flex text-xs w-32 justify-between border-zinc-300 dark:border-zinc-600 border items-center gap-x-1.5 bg-zinc-100 dark:bg-zinc-900 px-2 py-2 text-sm font-normal text-zinc-900 dark:text-zinc-100 hover:bg-zinc-200 dark:hover:bg-zinc-800"
+					>
+						{aiConfiguration ? (
+							<>
+								{aiConfiguration.type === 'ollama' ? (
+									<Server size={16} />
+								) : aiConfiguration.type === 'cloudflare' ? (
+									<CloudLightning size={16} />
+								) : (
+									<Code size={16} />
+								)}
+								<span className="capitalize flex space-x-1">
+									<span>{aiConfiguration.type}</span>
+									<span className="text-xs text-zinc-500 dark:text-zinc-400 truncate text-ellipsis">
+										{aiConfiguration.config.model?.substring(0, 7)}...
+									</span>
+								</span>
+							</>
+						) : (
+							<>
+								<Settings size={16} />
+								<span>Configure AI</span>
+							</>
+						)}
+					</button>
+				</div>
+			</div>
+		</div>
+	);
 };
 
 export default ChatNavbar;

@@ -31,7 +31,7 @@ const ChatApp: React.FC = () => {
 	const [, setOllamaRunning] = useState<boolean>(true);
 	const [showConfigModal, setShowConfigModal] = useState<boolean>(true);
 	const [conversations, setConversations] = useState<Conversation[]>([]);
-	const [conversationId, setConversationId] = useState<number | null>(null);
+	const [conversationId, setConversationId] = useState<number | undefined>(undefined);
 	const [conversationTitle, setConversationTitle] = useState<string>('New conversation');
 	const [db, setDb] = useState<IDBPDatabase | null>(null);
 	const [sidebarVisible, setSidebarVisible] = useState<boolean>(true);
@@ -85,7 +85,7 @@ const ChatApp: React.FC = () => {
 			if (conversations.length === 0 || conversations[0].messages.length > 0 || conversations[0].title !== 'New conversation') {
 				setConversations((prev) => [{ title: 'New conversation', messages: [] }, ...prev]);
 			} else {
-				setConversationId(conversations[0].id || null);
+				setConversationId(conversations[0].id);
 			}
 		};
 
@@ -99,7 +99,7 @@ const ChatApp: React.FC = () => {
 		setConversations((prev) => prev.filter((conv) => conv.id !== id));
 
 		//set conversation id to the last conversation
-		setConversationId(conversations.length > 1 ? conversations[0].id || null : null);
+		setConversationId(conversations.length > 1 ? conversations[0].id : undefined);
 	};
 
 	const editConversationTitle = async (id: number, newTitle: string) => {
@@ -124,13 +124,13 @@ const ChatApp: React.FC = () => {
 	const startNewConversation = () => {
 		// If the last conversation is "New conversation" with empty messages, override it
 		if (conversations.length > 0 && conversations[0].title === 'New conversation' && conversations[0].messages.length === 0) {
-			setConversationId(conversations[0].id || null);
+			setConversationId(conversations[0].id);
 			setConversationTitle('New conversation');
 			return;
 		}
 
 		// Create a new conversation
-		setConversationId(null);
+		setConversationId(undefined);
 		setConversationTitle('New conversation');
 		setConversations((prev) => [{ title: 'New conversation', messages: [] }, ...prev]);
 	};
@@ -160,8 +160,6 @@ const ChatApp: React.FC = () => {
 					conversations={conversations}
 					conversationId={conversationId}
 					setConversationId={setConversationId}
-					conversationTitle={conversationTitle}
-					setConversationTitle={setConversationTitle}
 					setConversations={setConversations}
 					db={db}
 					aiConfiguration={aiConfiguration}

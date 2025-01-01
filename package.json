@@ -16,5 +16,9 @@
 		"typescript": "^5.5.2",
 		"vitest": "2.1.8",
 		"wrangler": "^3.60.3"
+	},
+	"dependencies": {
+		"rehype-highlight": "^7.0.1",
+		"remark-gfm": "^4.0.0"
 	}
 }

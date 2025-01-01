@@ -3,6 +3,9 @@ import ReactMarkdown from 'react-markdown';
 import { Send, Pause } from 'lucide-react';
 import { storeName } from '../consts';
 import { AiConfiguration } from './ChatApp';
+import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
+import 'highlight.js/styles/github.css';
 
 interface Message {
 	text: string;
@@ -19,10 +22,8 @@ interface ConversationThreadProps {
 	ollamaApiBaseUrl: string;
 	ollamaApiUrl: string;
 	conversations: Conversation[];
-	conversationId: number | null;
+	conversationId?: number;
 	setConversationId: (id: number) => void;
-	conversationTitle: string;
-	setConversationTitle: (title: string) => void;
 	setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
 	db: any;
 	aiConfiguration: AiConfiguration | undefined;
@@ -33,8 +34,6 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 	conversations,
 	conversationId,
 	setConversationId,
-	conversationTitle,
-	setConversationTitle,
 	setConversations,
 	db,
 	aiConfiguration,
@@ -65,17 +64,61 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 		const loadConversation = async () => {
 			if (!conversationId) {
 				setMessages([]);
-				setConversationTitle('New conversation');
 				return;
 			}
 			if (conversationId) {
 				const conversation = await db.get(storeName, conversationId);
-				setConversationTitle(conversation.title);
 				setMessages(conversation.messages);
 			}
 		};
 		loadConversation();
 	}, [conversationId]);
+
+	//if the conversation id changes and the conversation id was previously undefined, create a new conversation title
+	useEffect(() => {
+		async function getNewConversationTitle() {
+			//if the conversation does not yet have a title, get a title from the first message
+			if (
+				messages.length > 1 &&
+				!!aiConfiguration &&
+				conversationId != undefined &&
+				conversations.find((obj) => obj.id === conversationId)?.title === 'New conversation'
+			) {
+				//make a fetch to ollama to get a summary of the conversation/title based on the first message
+				const response = await fetch(ollamaApiUrl, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({
+						model: aiConfiguration.config.model,
+						prompt: `Generate a 5-7 word title for this conversation based on this first message (only provide the title in the fewest characters possible, no brackets or any additional punctuation):\n${messages[0].text}`,
+						stream: false,
+					}),
+				});
+
+				const body = await response.json();
+
+				if (!response.ok) {
+					console.error('Network response was not ok');
+				}
+
+				const title = body.response;
+
+				console.log(title);
+
+				setConversations((prev) =>
+					prev.map((conversation) =>
+						conversation.id === conversationId
+							? { ...conversation, title: title as string, id: conversationId || conversation.id }
+							: conversation
+					)
+				);
+			}
+		}
+
+		getNewConversationTitle();
+	}, [conversationId, messages.length]);
 
 	const streamResponse = async (prompt: string, conversationHistory: string) => {
 		let aiResponse = '';
@@ -163,8 +206,6 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 
 		const userMessage: Message = { text: input, isUser: true };
 
-		setMessages((prev) => [...prev, userMessage]);
-
 		setInput('');
 		setIsLoading(true);
 
@@ -174,38 +215,8 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 			return;
 		}
 
-		//if the conversation does not yet have a title, get a title from the first message
-		if (!conversationTitle || conversationTitle === 'New conversation') {
-			//make a fetch to ollama to get a summary of the conversation/title based on the first message
-			const response = await fetch(ollamaApiUrl, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify({
-					model: aiConfiguration.config.model,
-					prompt: `Generate a 5-7 word title for this conversation based on this first message (only provide the title in the fewest characters possible, no brackets or any additional punctuation):\n${input}`,
-					stream: false,
-				}),
-			});
-
-			const body = await response.json();
-
-			if (!response.ok) {
-				console.error('Network response was not ok');
-			}
-
-			const title = body.response;
-			setConversationTitle(title);
-
-			console.log(title);
-
-			setConversations((prev) =>
-				prev.map((conversation) => (conversation.id === conversationId ? { ...conversation, title } : conversation))
-			);
-		}
-
 		const conversationHistory = messages.map((msg) => `${msg.isUser ? 'Human' : 'AI'}: ${msg.text}`).join('\n');
+		setMessages((prev) => [...prev, userMessage]);
 
 		await streamResponse(input, conversationHistory);
 
@@ -223,8 +234,8 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 			const store = db.transaction(storeName, 'readwrite').objectStore(storeName);
 			const isNewConversation = !!!conversationId;
 			const objectData = conversationId
-				? { id: conversationId, title: conversationTitle, messages }
-				: { title: conversationTitle, messages };
+				? { id: conversationId, title: conversations.find((obj) => obj.id === conversationId)?.title, messages }
+				: { title: 'New conversation', messages };
 			const value = await store.put(objectData);
 			setConversationId(value);
 
@@ -237,7 +248,6 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 
 			const store2 = db.transaction(storeName, 'readwrite').objectStore(storeName);
 			const conversation = await store2.get(conversationId);
-			setConversationTitle(conversation.title);
 		};
 
 		if (db) {
@@ -267,18 +277,23 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 							{messages.map((message, index) => (
 								<div key={index} className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}>
 									<div
-										className={`p-2 border-l-2 text-sm ${
-											message.isUser
-												? 'bg-zinc-200 dark:bg-zinc-700 border-zinc-400 text-zinc-900 dark:text-white'
-												: 'bg-zinc-100 dark:bg-zinc-600 border-zinc-300 text-zinc-900 dark:text-white'
-										} font-mono`}
+										className={`p-2 border-l-2 text-sm 
+                      space-y-4 prose [&>ul]:list-disc [&>ol]:list-numbered [&>ul]:list-outside [&>ol]:list-outside
+                      [&>ul]:pl-4 [&>ol]:pl-4
+                      ${
+												message.isUser
+													? 'bg-zinc-200 dark:bg-zinc-700 border-zinc-400 text-zinc-900 dark:text-white'
+													: 'bg-zinc-100 dark:bg-zinc-600 border-zinc-300 text-zinc-900 dark:text-white'
+											} font-mono`}
 									>
-										<ReactMarkdown>{message.text}</ReactMarkdown>
+										<ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+											{message.text}
+										</ReactMarkdown>
 									</div>
 								</div>
 							))}
 							{isLoading && !streamStarted && (
-								<div className="text-center text-sm text-zinc-600 dark:text-white font-mono">Thinking...</div>
+								<div className="text-center p-4 text-sm text-zinc-600 dark:text-white font-mono">Thinking...</div>
 							)}
 						</div>
 						<div ref={messagesEndRef} />
@@ -322,6 +337,7 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 								{isLoading && streamStarted ? <Pause size={16} /> : <Send size={16} />}
 							</button>
 						</form>
+						<div className="text-xs line-height-4 max-h-20 overflow-scroll"></div>
 					</div>
 				</div>
 			</main>
