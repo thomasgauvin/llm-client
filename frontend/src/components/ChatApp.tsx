@@ -32,7 +32,7 @@ const ChatApp: React.FC = () => {
 	const [showConfigModal, setShowConfigModal] = useState<boolean>(true);
 	const [conversations, setConversations] = useState<Conversation[]>([]);
 	const [conversationId, setConversationId] = useState<number | undefined>(undefined);
-	const [conversationTitle, setConversationTitle] = useState<string>('New conversation');
+	const [, setConversationTitle] = useState<string>('New conversation');
 	const [db, setDb] = useState<IDBPDatabase | null>(null);
 	const [sidebarVisible, setSidebarVisible] = useState<boolean>(true);
 	const [ollamaApiBaseUrl, setOllamaApiBaseUrl] = useState<string>(localStorage.getItem('ollama_api_base_url') || 'http://localhost:11434');

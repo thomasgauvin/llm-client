@@ -247,7 +247,7 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 			}
 
 			const store2 = db.transaction(storeName, 'readwrite').objectStore(storeName);
-			const conversation = await store2.get(conversationId);
+			await store2.get(conversationId);
 		};
 
 		if (db) {
