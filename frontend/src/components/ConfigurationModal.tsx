@@ -182,7 +182,10 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ isOpen, setIsOp
 			configurationSteps: [
 				{
 					label: 'Allow this site in Ollama origins',
-					preInputText: `Add \`https://local-ai-chat.appsinprogress.com/\` to your Ollama origins. On MacOS, run the following terminal command:`,
+					preInputText: `Add \`${window.location.href.substring(
+						0,
+						window.location.href.length - 1
+					)}\` to your Ollama origins. On MacOS, run the following terminal command:`,
 					input: {
 						value: `launchctl setenv OLLAMA_ORIGINS "${window.location.href.substring(0, window.location.href.length - 1)}"`,
 						disabled: true,
