@@ -91,7 +91,7 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 						'Content-Type': 'application/json',
 					},
 					body: JSON.stringify({
-						model: aiConfiguration.config.model,
+						model: aiConfiguration?.config?.model,
 						prompt: `Generate a 5-7 word title for this conversation based on this first message (only provide the title in the fewest characters possible, no brackets or any additional punctuation):\n${messages[0].text}`,
 						stream: false,
 					}),
@@ -123,7 +123,7 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 	const streamResponse = async (prompt: string, conversationHistory: string) => {
 		let aiResponse = '';
 
-		if (!aiConfiguration || !aiConfiguration.config || !aiConfiguration.config?.model) {
+		if (!aiConfiguration || !aiConfiguration.config || !aiConfiguration?.config?.model) {
 			alert('Please select an AI model');
 			return;
 		}
@@ -136,7 +136,7 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 					'Content-Type': 'application/json',
 				},
 				body: JSON.stringify({
-					model: aiConfiguration.config.model,
+					model: aiConfiguration?.config.model,
 					prompt: fullPrompt,
 					stream: true,
 				}),

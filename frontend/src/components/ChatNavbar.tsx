@@ -41,7 +41,7 @@ const ChatNavbar: React.FC<ChatNavbarProps> = ({ sidebarVisible, setSidebarVisib
 								<span className="capitalize flex space-x-1">
 									<span>{aiConfiguration.type}</span>
 									<span className="text-xs text-zinc-500 dark:text-zinc-400 truncate text-ellipsis">
-										{aiConfiguration.config.model?.substring(0, 7)}...
+										{aiConfiguration?.config?.model?.substring(0, 7)}...
 									</span>
 								</span>
 							</>

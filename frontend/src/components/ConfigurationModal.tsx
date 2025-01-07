@@ -38,7 +38,7 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ isOpen, setIsOp
 	});
 
 	const [selectedModel, setSelectedModel] = useState<string>(() => {
-		return config.type === 'ollama' ? config.config?.model || '' : '';
+		return config.type === 'ollama' ? config?.config?.model || '' : '';
 	});
 
 	const [customFunction] = useState<Function>(() => {
