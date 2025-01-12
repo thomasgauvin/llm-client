@@ -337,7 +337,7 @@ caddy reverse-proxy --from https://<YOUR_LOCAL_IP>:8443 --to http://localhost:11
 					</div>
 
 					<div className="space-y-4">
-						<Dialog.Title className="text-lg font-medium mb-4 text-zinc-900 dark:text-white mx-6">Configure AI Provider</Dialog.Title>
+						<Dialog.Title className="text-xl font-medium mb-4 text-zinc-900 dark:text-white mx-6">Configure AI Provider</Dialog.Title>
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-6 mx-6">
 							{aiProviderOptions.map((option) => (
 								<button
@@ -356,7 +356,7 @@ caddy reverse-proxy --from https://<YOUR_LOCAL_IP>:8443 --to http://localhost:11
                       `}
 								>
 									<div className="text-zinc-900 dark:text-white">{option.iconRenderFunction('w-4 h-4')}</div>
-									<span className="font-medium text-sm text-zinc-800 dark:text-zinc-200">{option.title}</span>
+									<span className="font-medium text-base text-zinc-800 dark:text-zinc-200">{option.title}</span>
 								</button>
 							))}
 						</div>
@@ -366,8 +366,8 @@ caddy reverse-proxy --from https://<YOUR_LOCAL_IP>:8443 --to http://localhost:11
 									{option.name === selectedOption && (
 										<>
 											{platform === 'web' && selectedOption === 'cloudflare' ? (
-												<div className="space-y-4 text-sm mx-6">
-													<p className="text-xs italic text-zinc-600 dark:text-zinc-400">{option.description}</p>
+												<div className="space-y-4 text-base mx-6">
+													<p className="text-sm italic text-zinc-600 dark:text-zinc-400">{option.description}</p>
 													<p className="text-red-600">
 														The Cloudflare REST API can only be accessed through our desktop or mobile applications.
 													</p>
@@ -385,17 +385,17 @@ caddy reverse-proxy --from https://<YOUR_LOCAL_IP>:8443 --to http://localhost:11
 											) : (
 												<div key={option.name} className="space-y-4">
 													<div className="mx-6">
-														<p className="text-xs italic text-zinc-600 dark:text-zinc-400">{option.description}</p>
+														<p className="text-sm italic text-zinc-600 dark:text-zinc-400">{option.description}</p>
 													</div>
 
 													<div className="space-y-2 mx-6">
 														<h3 className="text-base font-medium text-zinc-900 dark:text-white">Configuration Steps:</h3>
 														{option.configurationSteps?.map((step, index) => (
 															<div key={index} className="space-y-2">
-																<h4 className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{step.label}</h4>
+																<h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{step.label}</h4>
 																<div
 																	className="p-3 bg-zinc-50 dark:bg-zinc-800
-                                    text-xs prose prose-sm leading-relaxed
+                                    text-sm prose prose-sm leading-relaxed
                                     border border-zinc-200 dark:border-zinc-700"
 																>
 																	{step.preInputText && <ReactMarkdown className="dark:text-zinc-300">{step.preInputText}</ReactMarkdown>}
@@ -412,7 +412,7 @@ caddy reverse-proxy --from https://<YOUR_LOCAL_IP>:8443 --to http://localhost:11
 																						}}
 																						className={`w-full p-2 border
                                               appearance-none
-                                              font-mono text-xs
+                                              font-mono text-sm
                                               ${
 																								step.input.disabled
 																									? 'bg-zinc-100 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400'
@@ -437,7 +437,7 @@ caddy reverse-proxy --from https://<YOUR_LOCAL_IP>:8443 --to http://localhost:11
 																						}}
 																						className={`w-full p-2 border
                                               appearance-none
-                                              font-mono text-xs
+                                              font-mono text-sm
                                               ${
 																								step.input.disabled
 																									? 'bg-zinc-100 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400'
@@ -470,13 +470,13 @@ caddy reverse-proxy --from https://<YOUR_LOCAL_IP>:8443 --to http://localhost:11
                                     border border-zinc-200 dark:border-zinc-700
                                     p-3 bg-zinc-50 dark:bg-zinc-800"
 																>
-																	<div className="flex items-center justify-between text-sm">
-																		<span className="text-xs text-zinc-700 dark:text-zinc-300">{step.label}</span>
+																	<div className="flex items-center justify-between text-base">
+																		<span className="text-sm text-zinc-700 dark:text-zinc-300">{step.label}</span>
 																		{step.buttonRenderFunction(step.buttonOnClick)}
 																	</div>
 																	{step.status && (
 																		<span
-																			className={`text-xs ${
+																			className={`text-sm ${
 																				step.status === 'Testing...'
 																					? 'text-zinc-600 dark:text-zinc-400'
 																					: step.status.includes('Successfully')
@@ -493,7 +493,7 @@ caddy reverse-proxy --from https://<YOUR_LOCAL_IP>:8443 --to http://localhost:11
 													)}
 
 													<div className="flex justify-end items-center pt-4 sticky bottom-0 bg-white dark:bg-zinc-900 p-4 shadow-2xl">
-														<div className="mr-4 text-xs text-zinc-400 dark:text-zinc-500">
+														<div className="mr-4 text-sm text-zinc-400 dark:text-zinc-500">
 															{testStatus.ollama === 'Successfully tested!' && (
 																<span className="text-green-600 dark:text-green-400">{testStatus.ollama}</span>
 															)}
@@ -501,7 +501,7 @@ caddy reverse-proxy --from https://<YOUR_LOCAL_IP>:8443 --to http://localhost:11
 														<button
 															onClick={handleConfigurationComplete}
 															disabled={!isCurrentStepVerified()}
-															className={`px-5 py-2 text-sm transition-all duration-300 ${
+															className={`px-5 py-2 text-base transition-all duration-300 ${
 																isCurrentStepVerified()
 																	? 'bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-100'
 																	: 'bg-zinc-100 text-zinc-400 cursor-not-allowed dark:bg-zinc-800 dark:text-zinc-600'
