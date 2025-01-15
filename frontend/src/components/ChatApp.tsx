@@ -136,7 +136,7 @@ const ChatApp: React.FC = () => {
 	};
 
 	return (
-		<div className="flex flex-col h-svh w-screen overflow-clip bg-white dark:bg-zinc-800">
+		<div className="flex flex-col h-dvh w-screen overflow-clip bg-white dark:bg-zinc-800">
 			<ChatNavbar
 				sidebarVisible={sidebarVisible}
 				setSidebarVisible={setSidebarVisible}
