@@ -1,21 +1,24 @@
 {
-  "name": "llm-client",
-  "main": "./src/index.ts",
-  "compatibility_date": "2025-01-17",
-  "compatibility_flags": ["nodejs_compat"],
-  "assets": {
-    "directory": "./frontend/dist/",
-    "not_found_handling": "single-page-application"
-  },
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "llm-client_db",
-      "database_id": "fb3ee6d3-4f0c-4cae-98c3-51ac001d7862",
-      "migrations_dir": "migrations"
-    }
-  ],
-  "ai": {
-    "binding": "AI"
-  }
+	"name": "llm-client",
+	"main": "./src/index.ts",
+	"compatibility_date": "2025-01-17",
+	"compatibility_flags": ["nodejs_compat"],
+	"assets": {
+		"directory": "./frontend/dist/",
+		"not_found_handling": "single-page-application"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "llm-client_db",
+			"database_id": "fb3ee6d3-4f0c-4cae-98c3-51ac001d7862",
+			"migrations_dir": "migrations"
+		}
+	],
+	"env": {
+		"staging": {}
+	},
+	"ai": {
+		"binding": "AI"
+	}
 }
