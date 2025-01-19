@@ -4,13 +4,14 @@ import ChatThemeDropdown from './ChatThemeDropdown.tsx';
 import { AiConfiguration } from './ChatApp.tsx';
 
 interface ChatNavbarProps {
+	credits: number | null;
 	sidebarVisible: boolean;
 	setSidebarVisible: React.Dispatch<React.SetStateAction<boolean>>;
 	aiConfiguration: AiConfiguration | undefined;
 	setShowConfigModal: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const ChatNavbar: React.FC<ChatNavbarProps> = ({ sidebarVisible, setSidebarVisible, aiConfiguration, setShowConfigModal }) => {
+const ChatNavbar: React.FC<ChatNavbarProps> = ({ credits, sidebarVisible, setSidebarVisible, aiConfiguration, setShowConfigModal }) => {
 	return (
 		<div className="border-b border-zinc-200 dark:border-zinc-600">
 			<div className="m-2 flex items-center justify-between">
@@ -24,6 +25,15 @@ const ChatNavbar: React.FC<ChatNavbarProps> = ({ sidebarVisible, setSidebarVisib
 					<h1 className="text-base font-semibold text-zinc-800 dark:text-zinc-200">LLM Client</h1>
 				</div>
 				<div className="flex items-center gap-4">
+					{
+						// Credits display
+						credits && aiConfiguration?.type == 'included' && (
+							<div className="flex items-center gap-1">
+								<span className="text-xs text-zinc-500 dark:text-zinc-400">Credits (resets daily):</span>
+								<span className="text-xs text-zinc-900 dark:text-zinc-100">{credits}</span>
+							</div>
+						)
+					}
 					<ChatThemeDropdown />
 					<button
 						onClick={() => setShowConfigModal(true)}
