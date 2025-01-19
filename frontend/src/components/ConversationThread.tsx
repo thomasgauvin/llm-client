@@ -78,10 +78,14 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 				//iterate through conversation to fix it
 				if (conversation) {
 					conversation.messages = conversation.messages.map((message: any) => {
-						return {
-							role: message.isUser ? 'user' : 'assistant',
-							content: message.text,
-						};
+						if (message.text && message.isUser) {
+							return {
+								role: message.isUser ? 'user' : 'assistant',
+								content: message.text,
+							};
+						}
+
+						return message;
 					});
 				}
 
