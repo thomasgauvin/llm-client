@@ -73,6 +73,18 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 			}
 			if (conversationId) {
 				const conversation = await db.get(storeName, conversationId);
+
+				//we changed the model of the data stored in indexdb to be role and content instead of text and isUser
+				//iterate through conversation to fix it
+				if (conversation) {
+					conversation.messages = conversation.messages.map((message: any) => {
+						return {
+							role: message.isUser ? 'user' : 'assistant',
+							content: message.text,
+						};
+					});
+				}
+
 				setMessages(conversation.messages);
 			}
 		};
