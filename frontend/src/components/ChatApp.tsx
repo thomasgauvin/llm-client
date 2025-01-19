@@ -35,8 +35,11 @@ const ChatApp: React.FC = () => {
 	const [, setConversationTitle] = useState<string>('New conversation');
 	const [db, setDb] = useState<IDBPDatabase | null>(null);
 	const [sidebarVisible, setSidebarVisible] = useState<boolean>(true);
-	const [ollamaApiBaseUrl, setOllamaApiBaseUrl] = useState<string>(localStorage.getItem('ollama_api_base_url') || 'http://localhost:11434');
+	const [ollamaApiBaseUrl, setOllamaApiBaseUrl] = useState<string>(
+		localStorage.getItem('ollama_api_base_url') || 'http://localhost:11434/api'
+	);
 	const [ollamaApiUrl, setOllamaApiUrl] = useState<string>(`${ollamaApiBaseUrl}/api/generate`);
+	const [credits, setCredits] = useState<number | null>(null);
 
 	//setup db at the beginning
 	useEffect(() => {
@@ -69,7 +72,7 @@ const ChatApp: React.FC = () => {
 				setOllamaRunning(false);
 			}
 		};
-		pingOllama();
+		// pingOllama();
 	}, []);
 
 	//once the db is set, get all the conversations
@@ -115,9 +118,9 @@ const ChatApp: React.FC = () => {
 
 		// Update API URL if Ollama is selected
 		if (config.type === 'ollama') {
-			setOllamaApiBaseUrl(config.config.url || '');
+			setOllamaApiBaseUrl(config.config.url + '/api' || '');
 			setOllamaApiUrl(`${config.config.url}/api/generate`);
-			localStorage.setItem('ollama_api_base_url', config.config.url || '');
+			localStorage.setItem('ollama_api_base_url', config.config.url + '/api' || '');
 		}
 	};
 
@@ -135,9 +138,28 @@ const ChatApp: React.FC = () => {
 		setConversations((prev) => [{ title: 'New conversation', messages: [] }, ...prev]);
 	};
 
+	// Add function to fetch credits
+	const fetchCredits = async () => {
+		try {
+			const response = await fetch('/api/credits');
+			const data = await response.json();
+			setCredits(data.credits);
+		} catch (error) {
+			console.error('Error fetching credits:', error);
+		}
+	};
+
+	// Add effect to fetch credits when using included provider
+	useEffect(() => {
+		if (aiConfiguration?.type === 'included') {
+			fetchCredits();
+		}
+	}, [aiConfiguration]);
+
 	return (
 		<div className="flex flex-col h-dvh w-screen overflow-clip bg-white dark:bg-zinc-800">
 			<ChatNavbar
+				credits={credits}
 				sidebarVisible={sidebarVisible}
 				setSidebarVisible={setSidebarVisible}
 				aiConfiguration={aiConfiguration}
@@ -156,13 +178,14 @@ const ChatApp: React.FC = () => {
 
 				<ConversationThread
 					ollamaApiBaseUrl={ollamaApiBaseUrl}
-					ollamaApiUrl={ollamaApiUrl}
 					conversations={conversations}
 					conversationId={conversationId}
 					setConversationId={setConversationId}
 					setConversations={setConversations}
 					db={db}
 					aiConfiguration={aiConfiguration}
+					credits={credits}
+					setCredits={setCredits}
 				/>
 			</div>
 

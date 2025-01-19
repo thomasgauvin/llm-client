@@ -6,10 +6,14 @@ import { AiConfiguration } from './ChatApp';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/github.css';
+import { processDataStream, processTextStream } from '@ai-sdk/ui-utils';
+import { set } from 'zod';
+import { createOllama } from 'ollama-ai-provider';
+import { generateText, streamText } from 'ai';
 
 interface Message {
-	text: string;
-	isUser: boolean;
+	role: 'user' | 'system' | 'assistant';
+	content: string;
 }
 
 interface Conversation {
@@ -20,23 +24,26 @@ interface Conversation {
 
 interface ConversationThreadProps {
 	ollamaApiBaseUrl: string;
-	ollamaApiUrl: string;
 	conversations: Conversation[];
 	conversationId?: number;
 	setConversationId: (id: number) => void;
 	setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
 	db: any;
 	aiConfiguration: AiConfiguration | undefined;
+	credits?: number | null;
+	setCredits: React.Dispatch<React.SetStateAction<number | null>>;
 }
 
 const ConversationThread: React.FC<ConversationThreadProps> = ({
-	ollamaApiUrl,
+	ollamaApiBaseUrl,
 	conversations,
 	conversationId,
 	setConversationId,
 	setConversations,
 	db,
 	aiConfiguration,
+	credits,
+	setCredits,
 }) => {
 	const messagesEndRef = useRef<HTMLDivElement>(null);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -77,110 +84,362 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 	//if the conversation id changes and the conversation id was previously undefined, create a new conversation title
 	useEffect(() => {
 		async function getNewConversationTitle() {
-			//if the conversation does not yet have a title, get a title from the first message
 			if (
 				messages.length > 1 &&
 				!!aiConfiguration &&
 				conversationId != undefined &&
 				conversations.find((obj) => obj.id === conversationId)?.title === 'New conversation'
 			) {
-				//make a fetch to ollama to get a summary of the conversation/title based on the first message
-				const response = await fetch(ollamaApiUrl, {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-					body: JSON.stringify({
-						model: aiConfiguration?.config?.model,
-						prompt: `Generate a 5-7 word title for this conversation based on this first message (only provide the title in the fewest characters possible, no brackets or any additional punctuation):\n${messages[0].text}`,
-						stream: false,
-					}),
-				});
+				const titlePrompt = `Generate a 5-7 word title for this conversation based on this first message (only provide the title in the fewest characters possible, no brackets or any additional punctuation):\n${messages[0].content}`;
 
-				const body = await response.json();
+				let title = '';
+				if (aiConfiguration.type === 'included') {
+					const response = await fetch('/api/chat', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify({
+							messages: [
+								{
+									role: 'user',
+									content: titlePrompt,
+								},
+							],
+						}),
+					});
 
-				if (!response.ok) {
-					console.error('Network response was not ok');
+					if (!response.ok) {
+						console.error('Failed to generate title');
+						return;
+					}
+
+					const stream = await response.body;
+					if (!stream) {
+						console.error('Failed to generate title');
+						return;
+					}
+
+					await processTextStream({
+						stream,
+						onTextPart: (chunk) => {
+							title += chunk;
+						},
+					});
+
+					//   if (!response.ok) {
+					//     console.error("Failed to generate title");
+					//     return;
+					//   }
+
+					//   // Read and combine all chunks from the stream
+					//   const reader = response.body!.getReader();
+					//   const decoder = new TextDecoder();
+					//   let titleText = "";
+
+					//   while (true) {
+					//     const { done, value } = await reader.read();
+					//     if (done) break;
+
+					//     const chunk = decoder.decode(value);
+					//     const lines = chunk.split("\n");
+
+					//     for (const line of lines) {
+					//       if (line.startsWith("data: ")) {
+					//         try {
+					//           const jsonStr = line.slice(5).trim();
+					//           const parsed = JSON.parse(jsonStr);
+					//           if (parsed.response) {
+					//             titleText += parsed.response;
+					//           }
+					//         } catch (e) {
+					//           console.error("Error parsing title JSON:", e);
+					//         }
+					//       }
+					//     }
+					//   }
+					//   title = titleText.trim();
+				} else {
+					console.log(ollamaApiBaseUrl);
+					const ollama = createOllama({
+						baseURL: ollamaApiBaseUrl,
+					});
+
+					const text = await generateText({
+						model: ollama(aiConfiguration?.config?.model as any),
+						messages: [
+							{
+								role: 'system',
+								content: `
+                  - You must generate a title for this conversation based on the first message.
+                  - Only provide the title in the fewest characters possible, no brackets or any additional punctuation.
+                  - You must keep the title between 5-7 words.
+                  - Do not respond to the message.
+                `,
+							},
+							...messages,
+						],
+					});
+
+					// const response = await fetch(ollamaApiUrl, {
+					//   method: "POST",
+					//   headers: {
+					//     "Content-Type": "application/json",
+					//   },
+					//   body: JSON.stringify({
+					//     model: aiConfiguration?.config?.model,
+					//     prompt: titlePrompt,
+					//     stream: false,
+					//   }),
+					// });
+
+					// if (!response.ok) {
+					//   console.error("Network response was not ok");
+					//   return;
+					// }
+
+					// const body = await response.json();
+					// title = body.response;
+					title = text.text;
 				}
 
-				const title = body.response;
-
-				console.log(title);
-
-				setConversations((prev) =>
-					prev.map((conversation) =>
-						conversation.id === conversationId
-							? { ...conversation, title: title as string, id: conversationId || conversation.id }
-							: conversation
-					)
-				);
+				if (title) {
+					setConversations((prev) =>
+						prev.map((conversation) =>
+							conversation.id === conversationId
+								? {
+										...conversation,
+										title: title as string,
+										id: conversationId || conversation.id,
+								  }
+								: conversation
+						)
+					);
+				}
 			}
 		}
 
 		getNewConversationTitle();
 	}, [conversationId, messages.length]);
 
-	const streamResponse = async (prompt: string, conversationHistory: string) => {
+	const streamResponse = async (messages: Message[]) => {
 		let aiResponse = '';
 
-		if (!aiConfiguration || !aiConfiguration.config || !aiConfiguration?.config?.model) {
+		if (!aiConfiguration) {
 			alert('Please select an AI model');
 			return;
 		}
 
 		try {
-			const fullPrompt = conversationHistory + '\nHuman: ' + prompt + '\nAI:';
-			const response = await fetch(ollamaApiUrl, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify({
-					model: aiConfiguration?.config.model,
-					prompt: fullPrompt,
-					stream: true,
-				}),
-				signal: controller.signal,
-			});
-
-			if (!response.ok) {
-				throw new Error('Network response was not ok');
-			}
-
-			const reader = response.body!.getReader();
-			const decoder = new TextDecoder();
-
-			setMessages((prev) => [...prev, { text: '', isUser: false }]);
-			setStreamStarted(true);
-
-			while (true) {
-				console.log('streaming');
-				console.log(JSON.stringify(controller.signal.aborted));
-				const { done, value } = await reader.read();
-				if (done) break;
-
-				if (controller.signal.aborted) {
-					break;
-				}
-				const chunk = decoder.decode(value);
-				const lines = chunk.split('\n');
-				lines.forEach((line) => {
-					if (line.trim() !== '') {
-						try {
-							const parsed = JSON.parse(line);
-							aiResponse += parsed.response;
-							setMessages((prev) => {
-								const newMessages = [...prev];
-								newMessages[newMessages.length - 1].text = aiResponse;
-								return newMessages;
-							});
-						} catch (e) {
-							console.error('Error parsing JSON:', e);
-						}
-					}
+			if (aiConfiguration.type === 'included') {
+				const response = await fetch('/api/chat', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({
+						messages,
+					}),
+					signal: controller.signal,
 				});
+
+				if (!response.ok) {
+					const error = await response.json();
+					throw new Error(error.error || 'Failed to generate response');
+				}
+
+				const stream = await response.body;
+				if (!stream) {
+					throw new Error('Failed to generate response');
+				}
+
+				setCredits((prev) => (prev ? prev - 2 : 0));
+
+				setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
+				setStreamStarted(true);
+
+				await processTextStream({
+					stream,
+					onTextPart: (chunk) => {
+						aiResponse += chunk;
+						setMessages((prev) => {
+							const newMessages = [...prev];
+							newMessages[newMessages.length - 1].content = aiResponse;
+							return newMessages;
+						});
+					},
+				});
+
+				// const reader = response.body!.getReader();
+				// const decoder = new TextDecoder();
+				// let buffer = ""; // Add buffer to handle partial chunks
+
+				// setMessages((prev) => [...prev, { role: "system", content: "" }]);
+				// setStreamStarted(true);
+
+				// while (true) {
+				//   const { done, value } = await reader.read();
+				//   if (done) break;
+
+				//   if (controller.signal.aborted) {
+				//     break;
+				//   }
+
+				//   // Append new chunk to buffer and split into lines
+				//   buffer += decoder.decode(value, { stream: true });
+				//   const lines = buffer.split("\n");
+
+				//   // Process all complete lines
+				//   for (let i = 0; i < lines.length - 1; i++) {
+				//     const line = lines[i].trim();
+				//     if (line.startsWith("data: ")) {
+				//       try {
+				//         const jsonStr = line.slice(5).trim(); // Remove "data: " prefix
+				//         const parsed = JSON.parse(jsonStr);
+				//         if (parsed.response) {
+				//           aiResponse += parsed.response;
+				//           setMessages((prev) => {
+				//             const newMessages = [...prev];
+				//             newMessages[newMessages.length - 1].content = aiResponse;
+				//             return newMessages;
+				//           });
+				//         }
+				//       } catch (e) {
+				//         console.error("Error parsing JSON from event stream:", e, line);
+				//       }
+				//     }
+				//   }
+
+				//   // Keep the last partial line in the buffer
+				//   buffer = lines[lines.length - 1];
+				// }
+
+				// // Process any remaining buffer content
+				// if (buffer.trim().startsWith("data: ")) {
+				//   try {
+				//     const jsonStr = buffer.slice(5).trim();
+				//     const parsed = JSON.parse(jsonStr);
+				//     if (parsed.response) {
+				//       aiResponse += parsed.response;
+				//       setMessages((prev) => {
+				//         const newMessages = [...prev];
+				//         newMessages[newMessages.length - 1].content = aiResponse;
+				//         return newMessages;
+				//       });
+				//     }
+				//   } catch (e) {
+				//     console.error("Error parsing final JSON from event stream:", e);
+				//   }
+				// }
+			} else if (aiConfiguration.type === 'ollama') {
+				const ollama = createOllama({
+					baseURL: ollamaApiBaseUrl,
+				});
+
+				setStreamStarted(true);
+
+				const stream = await streamText({
+					model: ollama(aiConfiguration?.config?.model as any),
+					messages: [
+						{
+							role: 'system',
+							content: `
+                  - You are an expert conversational chatbot. Your objective is to be as helpful as possible.
+                  - You must keep your responses relevant to the user's prompt.
+                  - You must respond with a maximum of 512 tokens (300 words). 
+                  - You must respond cleary and concisely, and explain your logic if required.
+                  - You must not provide any personal information.
+                  - Do not respond with your own personal opinions, and avoid topics unrelated to the user's prompt.
+                `,
+						},
+						...messages,
+					],
+					abortSignal: controller.signal,
+				});
+
+				const dataStream = stream.toDataStream();
+
+				setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
+
+				await processDataStream({
+					stream: dataStream,
+					onTextPart: (chunk) => {
+						aiResponse += chunk;
+						setMessages((prev) => {
+							const newMessages = [...prev];
+							newMessages[newMessages.length - 1].content = aiResponse;
+							return newMessages;
+						});
+					},
+				});
+
+				setStreamStarted(false);
+
+				//  processTextStream({
+				//   stream,
+				//   onTextPart: (chunk) => {
+				//     aiResponse += chunk;
+				//     setMessages((prev) => {
+				//       const newMessages = [...prev];
+				//       newMessages[newMessages.length - 1].content = aiResponse;
+				//       return newMessages;
+				//     });
+				//   },
+				// });
+
+				// const fullPrompt = conversationHistory + "\nHuman: " + prompt + "\nAI:";
+				// const response = await fetch(ollamaApiUrl, {
+				//   method: "POST",
+				//   headers: {
+				//     "Content-Type": "application/json",
+				//   },
+				//   body: JSON.stringify({
+				//     model: aiConfiguration?.config.model,
+				//     prompt: fullPrompt,
+				//     stream: true,
+				//   }),
+				//   signal: controller.signal,
+				// });
+
+				// if (!response.ok) {
+				//   throw new Error("Network response was not ok");
+				// }
+
+				// const reader = response.body!.getReader();
+				// const decoder = new TextDecoder();
+
+				// setMessages((prev) => [...prev, { role: "system", content: "" }]);
+				// setStreamStarted(true);
+
+				// while (true) {
+				//   console.log("streaming");
+				//   console.log(JSON.stringify(controller.signal.aborted));
+				//   const { done, value } = await reader.read();
+				//   if (done) break;
+
+				//   if (controller.signal.aborted) {
+				//     break;
+				//   }
+				//   const chunk = decoder.decode(value);
+				//   const lines = chunk.split("\n");
+				//   lines.forEach((line) => {
+				//     if (line.trim() !== "") {
+				//       try {
+				//         const parsed = JSON.parse(line);
+				//         aiResponse += parsed.response;
+				//         setMessages((prev) => {
+				//           const newMessages = [...prev];
+				//           newMessages[newMessages.length - 1].content = aiResponse;
+				//           return newMessages;
+				//         });
+				//       } catch (e) {
+				//         console.error("Error parsing JSON:", e);
+				//       }
+				//     }
+				//   });
+				// }
 			}
-		} catch (error) {
+		} catch (error: any) {
 			if (controller.signal.aborted) {
 				console.log('Stream aborted');
 			} else {
@@ -188,8 +447,13 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 				setMessages((prev) => [
 					...prev,
 					{
-						text: "Sorry, I couldn't generate a response. Please try again. Ensure you're properly running Ollama. If you've overridden the Ollama address, ensure it is properly configured and accessible.",
-						isUser: false,
+						role: 'assistant',
+						content:
+							error.message === 'No credits remaining'
+								? "You've run out of credits. Please try again later."
+								: aiConfiguration.type === 'included'
+								? "Sorry, I couldn't generate a response. Please try again later."
+								: "Sorry, I couldn't generate a response. Please ensure Ollama is properly configured.",
 					},
 				]);
 			}
@@ -204,7 +468,7 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 		e.preventDefault();
 		if (!input.trim()) return;
 
-		const userMessage: Message = { text: input, isUser: true };
+		const userMessage: Message = { role: 'user', content: input };
 
 		setInput('');
 		setIsLoading(true);
@@ -215,10 +479,9 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 			return;
 		}
 
-		const conversationHistory = messages.map((msg) => `${msg.isUser ? 'Human' : 'AI'}: ${msg.text}`).join('\n');
 		setMessages((prev) => [...prev, userMessage]);
 
-		await streamResponse(input, conversationHistory);
+		await streamResponse([...messages, userMessage]);
 
 		setIsLoading(false);
 	};
@@ -234,7 +497,11 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 			const store = db.transaction(storeName, 'readwrite').objectStore(storeName);
 			const isNewConversation = !!!conversationId;
 			const objectData = conversationId
-				? { id: conversationId, title: conversations.find((obj) => obj.id === conversationId)?.title, messages }
+				? {
+						id: conversationId,
+						title: conversations.find((obj) => obj.id === conversationId)?.title,
+						messages,
+				  }
 				: { title: 'New conversation', messages };
 			const value = await store.put(objectData);
 			setConversationId(value);
@@ -275,19 +542,19 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 					<div className="flex-grow overflow-auto mb-4 px-4 pt-4">
 						<div className="mx-auto space-y-2">
 							{messages.map((message, index) => (
-								<div key={index} className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}>
+								<div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
 									<div
 										className={`p-2 border-l-2 text-sm 
                       space-y-4 prose [&>ul]:list-disc [&>ol]:list-numbered [&>ul]:list-outside [&>ol]:list-outside
                       [&>ul]:pl-4 [&>ol]:pl-4
                       ${
-												message.isUser
+												message.role === 'user'
 													? 'bg-zinc-200 dark:bg-zinc-700 border-zinc-400 text-zinc-900 dark:text-white'
 													: 'bg-zinc-100 dark:bg-zinc-600 border-zinc-300 text-zinc-900 dark:text-white'
 											} font-mono`}
 									>
 										<ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
-											{message.text}
+											{message.content}
 										</ReactMarkdown>
 									</div>
 								</div>

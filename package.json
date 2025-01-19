@@ -1,24 +1,21 @@
 {
-	"name": "llm-client",
-	"version": "0.0.0",
-	"private": true,
-	"scripts": {
-		"deploy": "wrangler deploy",
-		"dev": "wrangler dev",
-		"start": "wrangler dev",
-		"test": "vitest",
-		"cf-typegen": "wrangler types",
-		"build": "npm install && cd frontend && npm install && npm run build"
-	},
-	"devDependencies": {
-		"@cloudflare/vitest-pool-workers": "^0.5.2",
-		"@cloudflare/workers-types": "^4.20241224.0",
-		"typescript": "^5.5.2",
-		"vitest": "2.1.8",
-		"wrangler": "^3.60.3"
-	},
-	"dependencies": {
-		"rehype-highlight": "^7.0.1",
-		"remark-gfm": "^4.0.0"
-	}
+  "name": "llm-client",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy --minify"
+  },
+  "dependencies": {
+    "@prisma/adapter-d1": "^6.2.1",
+    "@prisma/client": "^6.2.1",
+    "ai": "^4.1.0",
+    "drizzle-orm": "^0.38.4",
+    "hono": "^4.6.16",
+    "workers-ai-provider": "^0.0.10"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250109.0",
+    "drizzle-kit": "^0.30.2",
+    "prisma": "^6.2.1",
+    "wrangler": "^3.101.0"
+  }
 }
