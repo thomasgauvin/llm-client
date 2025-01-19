@@ -28,7 +28,7 @@ const ChatApp: React.FC = () => {
 		AiConfiguration | undefined,
 		React.Dispatch<React.SetStateAction<AiConfiguration | null>>
 	];
-	const [, setOllamaRunning] = useState<boolean>(true);
+	const [,] = useState<boolean>(true);
 	const [showConfigModal, setShowConfigModal] = useState<boolean>(true);
 	const [conversations, setConversations] = useState<Conversation[]>([]);
 	const [conversationId, setConversationId] = useState<number | undefined>(undefined);
@@ -38,7 +38,7 @@ const ChatApp: React.FC = () => {
 	const [ollamaApiBaseUrl, setOllamaApiBaseUrl] = useState<string>(
 		localStorage.getItem('ollama_api_base_url') || 'http://localhost:11434/api'
 	);
-	const [ollamaApiUrl, setOllamaApiUrl] = useState<string>(`${ollamaApiBaseUrl}/api/generate`);
+	const [, setOllamaApiUrl] = useState<string>(`${ollamaApiBaseUrl}/api/generate`);
 	const [credits, setCredits] = useState<number | null>(null);
 
 	//setup db at the beginning
@@ -60,18 +60,18 @@ const ChatApp: React.FC = () => {
 	//at the beginning, make a simple ping to ollama to check if its up and running
 	//we can make a get to localhost:11434 to check if ollama is running
 	useEffect(() => {
-		const pingOllama = async () => {
-			try {
-				const response = await fetch(ollamaApiBaseUrl);
-				if (!response.ok) {
-					throw new Error('Network response was not ok');
-				}
-				setOllamaRunning(true);
-			} catch (error) {
-				console.error('Error pinging Ollama:', error);
-				setOllamaRunning(false);
-			}
-		};
+		// const pingOllama = async () => {
+		// 	try {
+		// 		const response = await fetch(ollamaApiBaseUrl);
+		// 		if (!response.ok) {
+		// 			throw new Error('Network response was not ok');
+		// 		}
+		// 		setOllamaRunning(true);
+		// 	} catch (error) {
+		// 		console.error('Error pinging Ollama:', error);
+		// 		setOllamaRunning(false);
+		// 	}
+		// };
 		// pingOllama();
 	}, []);
 

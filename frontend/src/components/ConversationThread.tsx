@@ -7,7 +7,6 @@ import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/github.css';
 import { processDataStream, processTextStream } from '@ai-sdk/ui-utils';
-import { set } from 'zod';
 import { createOllama } from 'ollama-ai-provider';
 import { generateText, streamText } from 'ai';
 
@@ -42,7 +41,6 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 	setConversations,
 	db,
 	aiConfiguration,
-	credits,
 	setCredits,
 }) => {
 	const messagesEndRef = useRef<HTMLDivElement>(null);
