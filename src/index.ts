@@ -31,10 +31,11 @@ app.post('/api/credits', async (c) => {
 	const ipAddress = c.req.header('cf-connecting-ip') || 'unknown';
 	const { token } = await c.req.json();
 
-	console.log(token);
-
 	const isVerifiedWorker = await verifyWorkerToken(token, ipAddress);
-	const isVerifiedTurnstile = await verifyTurnstile(token, ipAddress);
+	let isVerifiedTurnstile = false;
+	if (!isVerifiedWorker) {
+		isVerifiedTurnstile = await verifyTurnstile(token, ipAddress);
+	}
 
 	if (!isVerifiedWorker && !isVerifiedTurnstile) {
 		return c.json({ error: 'Failed to verify token' }, 403);
@@ -200,7 +201,10 @@ app.post('/api/chat', async (c) => {
 });
 
 async function verifyWorkerToken(token: string, ip: string) {
+	console.log('verifying worker token');
 	const verifiedToken = await jwt.verify(token, WORKER_SECRET_KEY);
+
+	console.log('verified token is ', verifiedToken);
 
 	return !!verifiedToken;
 }
@@ -218,11 +222,15 @@ async function verifyTurnstile(token: string, ip: string) {
 	formData.append('response', token);
 	formData.append('remoteip', ip);
 
+	console.log('verifying token with siteverify');
+
 	const url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 	const result = await fetch(url, {
 		body: formData,
 		method: 'POST',
 	});
+
+	console.log('siteverify token is ', outcome.success);
 
 	const outcome: {
 		success: boolean;
