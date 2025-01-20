@@ -202,9 +202,15 @@ app.post('/api/chat', async (c) => {
 
 async function verifyWorkerToken(token: string, ip: string) {
 	console.log('verifying worker token');
-	const verifiedToken = await jwt.verify(token, WORKER_SECRET_KEY);
 
-	console.log('verified token is ', verifiedToken);
+	let verifiedToken;
+	try {
+		verifiedToken = await jwt.verify(token, WORKER_SECRET_KEY);
+	} catch (err) {
+		//do nothing, we might have a turnstile token which will be verified by the turnstile that follows
+	}
+
+	console.log('verified token is ', !!verifiedToken);
 
 	return !!verifiedToken;
 }
