@@ -236,11 +236,12 @@ async function verifyTurnstile(token: string, ip: string) {
 		method: 'POST',
 	});
 
-	console.log('siteverify token is ', outcome.success);
-
 	const outcome: {
 		success: boolean;
 	} = await result.json();
+
+	console.log('siteverify token is ', outcome.success);
+
 	return outcome.success;
 }
 
