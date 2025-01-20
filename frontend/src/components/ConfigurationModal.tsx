@@ -5,13 +5,14 @@ import ReactMarkdown from 'react-markdown';
 import { AiConfiguration } from './ChatApp';
 
 interface ConfigurationModalProps {
+	token?: string;
 	isOpen: boolean;
 	setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
 	onConfigurationComplete: (config: AiConfiguration) => void;
 	initialConfig: AiConfiguration | undefined;
 }
 
-const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ isOpen, setIsOpen, onConfigurationComplete, initialConfig }) => {
+const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ token, isOpen, setIsOpen, onConfigurationComplete, initialConfig }) => {
 	const [selectedOption, setSelectedOption] = useState<'ollama' | 'included' | 'cloudflare' | 'custom' | null>(() => {
 		const stored = localStorage.getItem('aiConfig');
 		if (stored) {
@@ -191,13 +192,31 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ isOpen, setIsOp
 					buttonRenderFunction: (onClick: () => void) => <TestButton onClick={onClick} />,
 					buttonOnClick: async () => {
 						try {
-							const response = await fetch('/api/credits', {
-								method: 'POST',
-								body: JSON.stringify({
-									token: localStorage.getItem('token'),
-								}),
-							});
-							const data = await response.json();
+							let data: {
+								credits: number;
+								workersToken: string;
+							};
+
+							async function fetchCredits() {
+								const response = await fetch('/api/credits', {
+									method: 'POST',
+									body: JSON.stringify({
+										token: token,
+									}),
+								});
+								return await response.json();
+							}
+							if (!token) {
+								await new Promise((resolve) =>
+									setTimeout(() => {
+										resolve;
+									}, 2000)
+								);
+
+								data = await fetchCredits();
+							} else {
+								data = await fetchCredits();
+							}
 
 							if (data['workersToken']) {
 								//store in local storage

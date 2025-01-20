@@ -22,6 +22,7 @@ interface Conversation {
 }
 
 interface ConversationThreadProps {
+	token?: string;
 	ollamaApiBaseUrl: string;
 	conversations: Conversation[];
 	conversationId?: number;
@@ -34,6 +35,7 @@ interface ConversationThreadProps {
 }
 
 const ConversationThread: React.FC<ConversationThreadProps> = ({
+	token,
 	ollamaApiBaseUrl,
 	conversations,
 	conversationId,
@@ -115,7 +117,7 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 						},
 						body: JSON.stringify({
 							//get token from local storage
-							token: localStorage.getItem('token'),
+							token: token,
 							messages: [
 								{
 									role: 'user',
@@ -254,7 +256,7 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 						'Content-Type': 'application/json',
 					},
 					body: JSON.stringify({
-						token: localStorage.getItem('token'),
+						token: token,
 						messages,
 					}),
 					signal: controller.signal,

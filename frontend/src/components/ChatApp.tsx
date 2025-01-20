@@ -23,7 +23,11 @@ export interface AiConfiguration {
 	};
 }
 
-const ChatApp: React.FC = () => {
+interface ChatAppProps {
+	token: string | undefined;
+}
+
+const ChatApp: React.FC<ChatAppProps> = ({ token }) => {
 	const [aiConfiguration, setAiConfiguration] = useAiConfiguration(undefined) as [
 		AiConfiguration | undefined,
 		React.Dispatch<React.SetStateAction<AiConfiguration | null>>
@@ -140,11 +144,12 @@ const ChatApp: React.FC = () => {
 
 	// Add function to fetch credits
 	const fetchCredits = async () => {
+		if (!token) return;
 		try {
 			const response = await fetch('/api/credits', {
 				method: 'POST',
 				body: JSON.stringify({
-					token: localStorage.getItem('token'),
+					token: token,
 				}),
 			});
 			const data = await response.json();
@@ -163,16 +168,9 @@ const ChatApp: React.FC = () => {
 	// Add effect to fetch credits when using included provider
 	useEffect(() => {
 		if (aiConfiguration?.type === 'included') {
-			const token = localStorage.getItem('token');
-			if (!token) {
-				setTimeout(() => {
-					fetchCredits();
-				}, 2000);
-			} else {
-				fetchCredits();
-			}
+			fetchCredits();
 		}
-	}, [aiConfiguration]);
+	}, [aiConfiguration, token]);
 
 	return (
 		<div className="flex flex-col h-dvh w-screen overflow-clip bg-white dark:bg-zinc-800">
@@ -195,6 +193,7 @@ const ChatApp: React.FC = () => {
 				/>
 
 				<ConversationThread
+					token={token}
 					ollamaApiBaseUrl={ollamaApiBaseUrl}
 					conversations={conversations}
 					conversationId={conversationId}
@@ -208,6 +207,7 @@ const ChatApp: React.FC = () => {
 			</div>
 
 			<ConfigurationModal
+				token={token}
 				isOpen={showConfigModal}
 				setIsOpen={setShowConfigModal}
 				onConfigurationComplete={handleConfigurationComplete}
