@@ -191,7 +191,12 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ isOpen, setIsOp
 					buttonRenderFunction: (onClick: () => void) => <TestButton onClick={onClick} />,
 					buttonOnClick: async () => {
 						try {
-							const response = await fetch('/api/credits');
+							const response = await fetch('/api/credits', {
+								method: 'POST',
+								body: JSON.stringify({
+									token: localStorage.getItem('token'),
+								}),
+							});
 							const data = await response.json();
 
 							if (data['workersToken']) {
