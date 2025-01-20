@@ -141,7 +141,12 @@ const ChatApp: React.FC = () => {
 	// Add function to fetch credits
 	const fetchCredits = async () => {
 		try {
-			const response = await fetch('/api/credits');
+			const response = await fetch('/api/credits', {
+				method: 'POST',
+				body: JSON.stringify({
+					token: localStorage.getItem('token'),
+				}),
+			});
 			const data = await response.json();
 
 			if (data['workersToken']) {
@@ -158,7 +163,14 @@ const ChatApp: React.FC = () => {
 	// Add effect to fetch credits when using included provider
 	useEffect(() => {
 		if (aiConfiguration?.type === 'included') {
-			fetchCredits();
+			const token = localStorage.getItem('token');
+			if (!token) {
+				setTimeout(() => {
+					fetchCredits();
+				}, 2000);
+			} else {
+				fetchCredits();
+			}
 		}
 	}, [aiConfiguration]);
 
