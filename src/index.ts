@@ -1,16 +1,18 @@
-import { Context, Hono, Next } from "hono";
-import { PrismaClient } from "@prisma/client";
-import { PrismaD1 } from "@prisma/adapter-d1";
-import { cors } from "hono/cors";
-import { createWorkersAI } from "workers-ai-provider";
-import { streamText } from "ai";
+import { Context, Hono, Next } from 'hono';
+import { PrismaClient } from '@prisma/client';
+import { PrismaD1 } from '@prisma/adapter-d1';
+import { cors } from 'hono/cors';
+import { createWorkersAI } from 'workers-ai-provider';
+import { streamText } from 'ai';
 
 interface Env {
-  Bindings: {
-    DB: D1Database;
-    AI: Ai;
-  };
+	Bindings: {
+		DB: D1Database;
+		AI: Ai;
+	};
 }
+
+const TURNSTILE_SECRET_KEY = '0x4AAAAAAA5tow-gD0lnobS8MyF9eWWsim8';
 
 const app = new Hono<Env>();
 app.use(cors());
@@ -18,34 +20,34 @@ const INITIAL_CREDITS = 200;
 
 // Helper function to get Prisma client
 function getPrismaClient(c: Context) {
-  const adapter = new PrismaD1(c.env.DB);
-  return new PrismaClient({ adapter });
+	const adapter = new PrismaD1(c.env.DB);
+	return new PrismaClient({ adapter });
 }
 
-app.get("/api/credits", async (c) => {
-  const prisma = getPrismaClient(c);
-  const ipAddress = c.req.header("cf-connecting-ip") || "unknown";
+app.get('/api/credits', async (c) => {
+	const prisma = getPrismaClient(c);
+	const ipAddress = c.req.header('cf-connecting-ip') || 'unknown';
 
-  try {
-    let userCredits = await prisma.credits.findUnique({
-      where: { ipAddress },
-    });
+	try {
+		let userCredits = await prisma.credits.findUnique({
+			where: { ipAddress },
+		});
 
-    if (!userCredits) {
-      userCredits = await prisma.credits.create({
-        data: {
-          ipAddress,
-          operationsRemaining: INITIAL_CREDITS,
-        },
-      });
-    }
+		if (!userCredits) {
+			userCredits = await prisma.credits.create({
+				data: {
+					ipAddress,
+					operationsRemaining: INITIAL_CREDITS,
+				},
+			});
+		}
 
-    return c.json({ credits: userCredits.operationsRemaining });
-  } catch (error) {
-    return c.json({ error: "Failed to fetch credits" }, 500);
-  } finally {
-    await prisma.$disconnect();
-  }
+		return c.json({ credits: userCredits.operationsRemaining });
+	} catch (error) {
+		return c.json({ error: 'Failed to fetch credits' }, 500);
+	} finally {
+		await prisma.$disconnect();
+	}
 });
 
 // app.post("/api/chat2", async (c) => {
@@ -115,27 +117,33 @@ app.get("/api/credits", async (c) => {
 //   }
 // });
 
-app.post("/api/chat", async (c) => {
-  const prisma = getPrismaClient(c);
-  const ipAddress = c.req.header("cf-connecting-ip") || "unknown";
-  const { messages } = await c.req.json();
+app.post('/api/chat', async (c) => {
+	const prisma = getPrismaClient(c);
+	const ipAddress = c.req.header('cf-connecting-ip') || 'unknown';
+	const { messages, token } = await c.req.json();
 
-  try {
-    const userCredits = await prisma.credits.findUnique({
-      where: { ipAddress },
-    });
+	const isVerified = await verifyTurnstile(token, ipAddress);
 
-    if (!userCredits || userCredits.operationsRemaining <= 0) {
-      return c.json({ error: "No credits remaining" }, 403);
-    }
+	if (!isVerified) {
+		return c.json({ error: 'Failed to verify token' }, 403);
+	}
 
-    const workersai = createWorkersAI({ binding: c.env.AI });
-    const text = await streamText({
-      model: workersai("@cf/meta/llama-3.3-70b-instruct-fp8-fast"),
-      messages: [
-        {
-          role: "system",
-          content: `
+	try {
+		const userCredits = await prisma.credits.findUnique({
+			where: { ipAddress },
+		});
+
+		if (!userCredits || userCredits.operationsRemaining <= 0) {
+			return c.json({ error: 'No credits remaining' }, 403);
+		}
+
+		const workersai = createWorkersAI({ binding: c.env.AI });
+		const text = await streamText({
+			model: workersai('@cf/meta/llama-3.3-70b-instruct-fp8-fast'),
+			messages: [
+				{
+					role: 'system',
+					content: `
             - You are an expert conversational chatbot. Your objective is to be as helpful as possible.
             - You must keep your responses relevant to the user's prompt.
             - You must respond with a maximum of 512 tokens (300 words). 
@@ -143,33 +151,53 @@ app.post("/api/chat", async (c) => {
             - You must not provide any personal information.
             - Do not respond with your own personal opinions, and avoid topics unrelated to the user's prompt.
           `,
-        },
-        ...messages,
-      ],
-    });
+				},
+				...messages,
+			],
+		});
 
-    // Record the operation and update credits
-    await Promise.all([
-      prisma.operations.create({
-        data: {
-          ipAddress,
-          creditsUsed: "1",
-        },
-      }),
-      prisma.credits.update({
-        where: { ipAddress },
-        data: {
-          operationsRemaining: userCredits.operationsRemaining - 2,
-          lastUpdated: new Date(),
-        },
-      }),
-    ]);
+		// Record the operation and update credits
+		await Promise.all([
+			prisma.operations.create({
+				data: {
+					ipAddress,
+					creditsUsed: '1',
+				},
+			}),
+			prisma.credits.update({
+				where: { ipAddress },
+				data: {
+					operationsRemaining: userCredits.operationsRemaining - 2,
+					lastUpdated: new Date(),
+				},
+			}),
+		]);
 
-    return text.toTextStreamResponse();
-  } catch (error) {
-    await prisma.$disconnect();
-    return c.json({ error: "Chat completion failed" }, 500);
-  }
+		return text.toTextStreamResponse();
+	} catch (error) {
+		await prisma.$disconnect();
+		return c.json({ error: 'Chat completion failed' }, 500);
+	}
 });
+
+async function verifyTurnstile(token: string, ip: string) {
+	// Validate the token by calling the
+	// "/siteverify" API endpoint.
+	let formData = new FormData();
+	formData.append('secret', TURNSTILE_SECRET_KEY);
+	formData.append('response', token);
+	formData.append('remoteip', ip);
+
+	const url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+	const result = await fetch(url, {
+		body: formData,
+		method: 'POST',
+	});
+
+	const outcome: {
+		success: boolean;
+	} = await result.json();
+	return outcome.success;
+}
 
 export default app;
