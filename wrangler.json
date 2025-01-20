@@ -7,6 +7,10 @@
 		"directory": "./frontend/dist/",
 		"not_found_handling": "single-page-application"
 	},
+	"observability": {
+		"enabled": true,
+		"head_sampling_rate": 1
+	},
 	"ai": {
 		"binding": "AI"
 	},
