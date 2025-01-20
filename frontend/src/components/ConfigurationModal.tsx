@@ -194,34 +194,15 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ token, isOpen, 
 						try {
 							let data: {
 								credits: number;
-								workersToken: string;
 							};
-
-							async function fetchCredits() {
-								const response = await fetch('/api/credits', {
-									method: 'POST',
-									body: JSON.stringify({
-										token: token,
-									}),
-								});
-								return await response.json();
-							}
-							if (!token) {
-								await new Promise((resolve) =>
-									setTimeout(() => {
-										resolve;
-									}, 2000)
-								);
-
-								data = await fetchCredits();
-							} else {
-								data = await fetchCredits();
-							}
-
-							if (data['workersToken']) {
-								//store in local storage
-								localStorage.setItem('token', data['workersToken']);
-							}
+							if (!token) return;
+							const response = await fetch('/api/credits', {
+								method: 'POST',
+								body: JSON.stringify({
+									token: token,
+								}),
+							});
+							data = await response.json();
 
 							setTestStatus({
 								...testStatus,

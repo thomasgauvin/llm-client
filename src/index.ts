@@ -26,6 +26,20 @@ function getPrismaClient(c: Context) {
 	return new PrismaClient({ adapter });
 }
 
+app.post('/api/token', async (c) => {
+	const ipAddress = c.req.header('cf-connecting-ip') || 'unknown';
+	const { token } = await c.req.json();
+
+	const isVerifiedTurnstile = await verifyTurnstile(token, ipAddress);
+
+	if (!isVerifiedTurnstile) {
+		return c.json({ error: 'Failed to verify token' }, 403);
+	}
+
+	const workersToken = await generateWorkerToken(token, ipAddress);
+	return c.json({ workersToken });
+});
+
 app.post('/api/credits', async (c) => {
 	const prisma = getPrismaClient(c);
 	const ipAddress = c.req.header('cf-connecting-ip') || 'unknown';
@@ -39,12 +53,6 @@ app.post('/api/credits', async (c) => {
 
 	if (!isVerifiedWorker && !isVerifiedTurnstile) {
 		return c.json({ error: 'Failed to verify token' }, 403);
-	}
-
-	const returnJson: any = {};
-
-	if (!isVerifiedWorker) {
-		returnJson['workersToken'] = await generateWorkerToken(token, ipAddress);
 	}
 
 	try {
@@ -61,80 +69,13 @@ app.post('/api/credits', async (c) => {
 			});
 		}
 
-		return c.json({ credits: userCredits.operationsRemaining, ...returnJson });
+		return c.json({ credits: userCredits.operationsRemaining });
 	} catch (error) {
-		return c.json({ error: 'Failed to fetch credits', ...returnJson }, 500);
+		return c.json({ error: 'Failed to fetch credits' }, 500);
 	} finally {
 		await prisma.$disconnect();
 	}
 });
-
-// app.post("/api/chat2", async (c) => {
-//   const prisma = getPrismaClient(c);
-//   const ipAddress = c.req.header("cf-connecting-ip") || "unknown";
-//   const { prompt, messages } = await c.req.json();
-
-//   try {
-//     const userCredits = await prisma.credits.findUnique({
-//       where: { ipAddress },
-//     });
-
-//     if (!userCredits || userCredits.operationsRemaining <= 0) {
-//       return c.json({ error: "No credits remaining" }, 403);
-//     }
-
-//     const conversationHistory = messages
-//       .map(
-//         (msg: { role: string; content: string }) =>
-//           `${msg.role === "user" ? "Human" : "AI"}: ${msg.content}`
-//       )
-//       .join("\n");
-
-//     // Include conversation history in the prompt
-//     const fullPrompt = conversationHistory
-//       ? `${conversationHistory}\nHuman: ${prompt}\nAI:`
-//       : `Human: ${prompt}\nAI:`;
-
-//     const responseStream = await c.env.AI.run(
-//       "@cf/meta/llama-3.1-8b-instruct",
-//       {
-//         stream: true,
-//         messages: [{ role: "user", content: fullPrompt }],
-//         max_tokens: 512,
-//       }
-//     );
-
-//     // Record the operation and update credits
-//     await Promise.all([
-//       prisma.operations.create({
-//         data: {
-//           ipAddress,
-//           creditsUsed: "1",
-//         },
-//       }),
-//       prisma.credits.update({
-//         where: { ipAddress },
-//         data: {
-//           operationsRemaining: userCredits.operationsRemaining - 1,
-//           lastUpdated: new Date(),
-//         },
-//       }),
-//     ]);
-
-//     await prisma.$disconnect();
-
-//     return new Response(responseStream as ReadableStream, {
-//       headers: {
-//         "content-type": "text/event-stream",
-//         "cache-control": "no-cache",
-//         connection: "keep-alive",
-//       },
-//     });
-//   } catch (error) {
-//     await prisma.$disconnect();
-//     return c.json({ error: "Chat completion failed" }, 500);
-//   }
-// });
 
 app.post('/api/chat', async (c) => {
 	const prisma = getPrismaClient(c);
