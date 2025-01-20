@@ -4,6 +4,7 @@ import { PrismaD1 } from '@prisma/adapter-d1';
 import { cors } from 'hono/cors';
 import { createWorkersAI } from 'workers-ai-provider';
 import { streamText } from 'ai';
+import jwt from '@tsndr/cloudflare-worker-jwt';
 
 interface Env {
 	Bindings: {
@@ -12,6 +13,7 @@ interface Env {
 	};
 }
 
+const WORKER_SECRET_KEY = 'xN4DU7Jj0MGTSA3zVAzJHQ6wFmbolZz+eLLeJhqwKCc=';
 const TURNSTILE_SECRET_KEY = '0x4AAAAAAA5tow-gD0lnobS8MyF9eWWsim8';
 
 const app = new Hono<Env>();
@@ -24,9 +26,23 @@ function getPrismaClient(c: Context) {
 	return new PrismaClient({ adapter });
 }
 
-app.get('/api/credits', async (c) => {
+app.post('/api/credits', async (c) => {
 	const prisma = getPrismaClient(c);
 	const ipAddress = c.req.header('cf-connecting-ip') || 'unknown';
+	const { token } = await c.req.json();
+
+	const isVerifiedWorker = await verifyWorkerToken(token, ipAddress);
+	const isVerifiedTurnstile = await verifyTurnstile(token, ipAddress);
+
+	if (!isVerifiedWorker && !isVerifiedTurnstile) {
+		return c.json({ error: 'Failed to verify token' }, 403);
+	}
+
+	const returnJson: any = {};
+
+	if (!isVerifiedWorker) {
+		returnJson['workersToken'] = await generateWorkerToken(token, ipAddress);
+	}
 
 	try {
 		let userCredits = await prisma.credits.findUnique({
@@ -42,9 +58,9 @@ app.get('/api/credits', async (c) => {
 			});
 		}
 
-		return c.json({ credits: userCredits.operationsRemaining });
+		return c.json({ credits: userCredits.operationsRemaining, ...returnJson });
 	} catch (error) {
-		return c.json({ error: 'Failed to fetch credits' }, 500);
+		return c.json({ error: 'Failed to fetch credits', ...returnJson }, 500);
 	} finally {
 		await prisma.$disconnect();
 	}
@@ -122,9 +138,10 @@ app.post('/api/chat', async (c) => {
 	const ipAddress = c.req.header('cf-connecting-ip') || 'unknown';
 	const { messages, token } = await c.req.json();
 
-	const isVerified = await verifyTurnstile(token, ipAddress);
+	const isVerifiedWorker = await verifyWorkerToken(token, ipAddress);
+	const isVerifiedTurnstile = await verifyTurnstile(token, ipAddress);
 
-	if (!isVerified) {
+	if (!isVerifiedWorker && !isVerifiedTurnstile) {
 		return c.json({ error: 'Failed to verify token' }, 403);
 	}
 
@@ -179,6 +196,17 @@ app.post('/api/chat', async (c) => {
 		return c.json({ error: 'Chat completion failed' }, 500);
 	}
 });
+
+async function verifyWorkerToken(token: string, ip: string) {
+	const verifiedToken = await jwt.verify(token, WORKER_SECRET_KEY);
+
+	return !!verifiedToken;
+}
+
+async function generateWorkerToken(turnstileToken: string, ip: string) {
+	const token = await jwt.sign({ ip, turnstileToken }, WORKER_SECRET_KEY);
+	return token;
+}
 
 async function verifyTurnstile(token: string, ip: string) {
 	// Validate the token by calling the
