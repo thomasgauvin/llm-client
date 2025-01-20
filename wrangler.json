@@ -7,21 +7,19 @@
 		"directory": "./frontend/dist/",
 		"not_found_handling": "single-page-application"
 	},
+	"ai": {
+		"binding": "AI"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "llm-client_db",
+			"database_id": "fb3ee6d3-4f0c-4cae-98c3-51ac001d7862",
+			"migrations_dir": "migrations"
+		}
+	],
 	"env": {
 		"staging": {
-			"ai": {
-				"binding": "AI"
-			},
-			"d1_databases": [
-				{
-					"binding": "DB",
-					"database_name": "llm-client_db",
-					"database_id": "fb3ee6d3-4f0c-4cae-98c3-51ac001d7862",
-					"migrations_dir": "migrations"
-				}
-			]
-		},
-		"production": {
 			"ai": {
 				"binding": "AI"
 			},
