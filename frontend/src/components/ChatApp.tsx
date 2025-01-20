@@ -143,6 +143,12 @@ const ChatApp: React.FC = () => {
 		try {
 			const response = await fetch('/api/credits');
 			const data = await response.json();
+
+			if (data['workersToken']) {
+				//store in local store for token
+				localStorage.setItem('token', data['workersToken']);
+			}
+
 			setCredits(data.credits);
 		} catch (error) {
 			console.error('Error fetching credits:', error);
