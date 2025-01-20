@@ -17,7 +17,7 @@ const WORKER_SECRET_KEY = 'xN4DU7Jj0MGTSA3zVAzJHQ6wFmbolZz+eLLeJhqwKCc=';
 const TURNSTILE_SECRET_KEY = '0x4AAAAAAA5tow-gD0lnobS8MyF9eWWsim8';
 
 const app = new Hono<Env>();
-app.use(cors());
+// app.use(cors());
 const INITIAL_CREDITS = 200;
 
 // Helper function to get Prisma client

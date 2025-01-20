@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { tokenName, siteverifyTokenName } from './consts.ts';
 
 function App() {
+	const [retry, setRetry] = useState(0);
 	const [siteverifyToken, setSiteverifyToken] = useState<string | undefined>(localStorage.getItem(siteverifyTokenName) || undefined);
 	const [token, setToken] = useState<string | undefined>(localStorage.getItem(tokenName) || undefined);
 
@@ -21,6 +22,16 @@ function App() {
 			},
 			body: JSON.stringify({ token: siteverifyToken }),
 		});
+
+		if (!response.ok) {
+			if (retry <= 2) {
+				setRetry((prev) => prev + 1);
+				console.log('retrying');
+				fetchToken();
+				return;
+			}
+		}
+
 		const data = await response.json();
 		setToken(data.workersToken);
 	}
