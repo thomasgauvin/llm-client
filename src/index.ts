@@ -31,6 +31,8 @@ app.post('/api/credits', async (c) => {
 	const ipAddress = c.req.header('cf-connecting-ip') || 'unknown';
 	const { token } = await c.req.json();
 
+	console.log(token);
+
 	const isVerifiedWorker = await verifyWorkerToken(token, ipAddress);
 	const isVerifiedTurnstile = await verifyTurnstile(token, ipAddress);
 
