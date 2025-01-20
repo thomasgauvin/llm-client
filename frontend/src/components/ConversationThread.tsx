@@ -114,6 +114,8 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 							'Content-Type': 'application/json',
 						},
 						body: JSON.stringify({
+							//get token from local storage
+							token: localStorage.getItem('turnstile-token'),
 							messages: [
 								{
 									role: 'user',
@@ -252,6 +254,7 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 						'Content-Type': 'application/json',
 					},
 					body: JSON.stringify({
+						token: localStorage.getItem('turnstile-token'),
 						messages,
 					}),
 					signal: controller.signal,
