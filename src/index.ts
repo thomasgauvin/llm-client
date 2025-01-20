@@ -216,6 +216,7 @@ async function verifyWorkerToken(token: string, ip: string) {
 }
 
 async function generateWorkerToken(turnstileToken: string, ip: string) {
+	console.log('generating worker token');
 	const token = await jwt.sign({ ip, turnstileToken }, WORKER_SECRET_KEY);
 	return token;
 }
