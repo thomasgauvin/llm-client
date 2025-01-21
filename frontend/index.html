@@ -13,13 +13,21 @@
 			})();
 		</script>
 		<script id="counterscale-script" src="https://counterscale.tomsprojects.workers.dev/tracker.js" defer></script>
+		<script type="text/javascript" id="clear-siteverifyToken">
+			(function () {
+				localStorage.removeItem('siteverifyToken');
+			})();
+		</script>
 		<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" defer></script>
 
 		<title>LLM Client</title>
 		<script type="text/javascript">
 			function javascriptCallback(token) {
-				//save token to local storage
-				localStorage.setItem('siteverifyToken', token);
+				window.siteverifyToken = token;
+				const tokenEvent = new CustomEvent('tokenReceived', {
+					detail: { siteverifyToken: token },
+				});
+				window.dispatchEvent(tokenEvent);
 			}
 		</script>
 	</head>

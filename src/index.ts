@@ -30,6 +30,9 @@ app.post('/api/token', async (c) => {
 	const ipAddress = c.req.header('cf-connecting-ip') || 'unknown';
 	const { token } = await c.req.json();
 
+	console.log('ipAddress', ipAddress);
+	console.log('token', token);
+
 	const isVerifiedTurnstile = await verifyTurnstile(token, ipAddress);
 
 	if (!isVerifiedTurnstile) {

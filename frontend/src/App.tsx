@@ -4,17 +4,32 @@ import { useEffect, useState } from 'react';
 import { tokenName, siteverifyTokenName } from './consts.ts';
 
 function App() {
-	const [retry, setRetry] = useState(0);
 	const [siteverifyToken, setSiteverifyToken] = useState<string | undefined>(localStorage.getItem(siteverifyTokenName) || undefined);
 	const [token, setToken] = useState<string | undefined>(localStorage.getItem(tokenName) || undefined);
 
-	window.addEventListener('storage', (event) => {
-		console.log('storage event');
-		console.log(event);
-		setSiteverifyToken(localStorage.getItem(siteverifyTokenName) || undefined);
-	});
+	//we pass data from index.html and the turnstile callback using a custom event
+	useEffect(() => {
+		const handleTokenReceived = (event: {
+			detail: {
+				siteverifyToken: string;
+			};
+		}) => {
+			setSiteverifyToken(event.detail.siteverifyToken);
+		};
+
+		//@ts-ignore
+		window.addEventListener('tokenReceived', handleTokenReceived);
+		return () => {
+			//@ts-ignore
+			window.removeEventListener('tokenReceived', handleTokenReceived);
+		};
+	}, []);
 
 	async function fetchToken() {
+		if (!siteverifyToken) {
+			return;
+		}
+
 		const response = await fetch('/api/token', {
 			method: 'POST',
 			headers: {
@@ -23,21 +38,14 @@ function App() {
 			body: JSON.stringify({ token: siteverifyToken }),
 		});
 
-		if (!response.ok) {
-			if (retry <= 2) {
-				setRetry((prev) => prev + 1);
-				console.log('retrying');
-				fetchToken();
-				return;
-			}
-		}
-
 		const data = await response.json();
-		setToken(data.workersToken);
+		if (data.workersToken) {
+			setSiteverifyToken(undefined);
+			setToken(data.workersToken);
+		}
 	}
 
 	useEffect(() => {
-		console.log('siteverifytoken is ', siteverifyToken);
 		fetchToken();
 	}, [siteverifyToken]);
 
